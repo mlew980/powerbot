@@ -107,34 +107,33 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
             	//If fishing level is over 50 then Harpoon, otherwise Cage
             	if(currLevel >= 50){
             		//Harpoon the fishing spot
-            		if(fishing_Spot.id() == FISHING_SPOT){
-            			fishing_Spot.interact("Harpoon");
+            		if(fishing_Spot.id() == FISHING_SPOT && fishing_Spot.interact("Harpoon")){
+	            		//Check if still fishing and if bag is full
+	                	while (ctx.players.local().interacting().valid() & ctx.backpack.select().count() != 28) {
+	                		Condition.sleep(Random.nextInt(800, 1000));
+	                		amountTuna = ctx.backpack.select().id(TUNA_NOTES).count(true) + ctx.backpack.select().id(TUNA).count();
+	                        amountSwordFish = ctx.backpack.select().id(SWORD_FISH_NOTES).count(true) + ctx.backpack.select().id(SWORD_FISH).count();
+	                		if(ctx.widgets.widget(FULL_INV_WINDOW).valid() & ctx.backpack.select().count() != 28){
+	                			ctx.widgets.component(FULL_INV_WINDOW,FULL_INV_COMPONENT).click();
+	                			//Set GUI status
+	                			status = "Finishd Fishing.";
+	                			break;
+	                		}
+	                	}
             		}
-            		
-            		//Check if still fishing and if bag is full
-                	while (ctx.players.local().interacting().valid() & ctx.backpack.select().count() != 28) {
-                		Condition.sleep(Random.nextInt(800, 1000));
-                		amountTuna = ctx.backpack.select().id(TUNA_NOTES).count(true) + ctx.backpack.select().id(TUNA).count();
-                        amountSwordFish = ctx.backpack.select().id(SWORD_FISH_NOTES).count(true) + ctx.backpack.select().id(SWORD_FISH).count();
-                		if(ctx.widgets.widget(FULL_INV_WINDOW).valid() & ctx.backpack.select().count() != 28){
-                			ctx.widgets.component(FULL_INV_WINDOW,FULL_INV_COMPONENT).click();
-                			//Set GUI status
-                			status = "Finishd Fishing.";
-                			break;
-                		}
-                	}
             	} else if (currLevel >= 40 & currLevel < 50){
-            		fishing_Spot.interact("Cage");
-                	while (ctx.players.local().interacting().valid()) {
-                		Condition.sleep(Random.nextInt(800, 1000));
-                		amountLobster = ctx.backpack.select().id(LOBSTER_NOTES).count(true) + ctx.backpack.select().id(LOBSTER).count();
-                		if(ctx.widgets.widget(FULL_INV_WINDOW).valid()){
-                			ctx.widgets.component(FULL_INV_WINDOW,FULL_INV_COMPONENT).click();
-                			//Set GUI status
-                			status = "Finishd Fishing.";
-                			break;
-                		}
-                	}
+            		if(fishing_Spot.id() == FISHING_SPOT && fishing_Spot.interact("Cage")){
+            			while (ctx.players.local().interacting().valid()) {
+                    		Condition.sleep(Random.nextInt(800, 1000));
+                    		amountLobster = ctx.backpack.select().id(LOBSTER_NOTES).count(true) + ctx.backpack.select().id(LOBSTER).count();
+                    		if(ctx.widgets.widget(FULL_INV_WINDOW).valid()){
+                    			ctx.widgets.component(FULL_INV_WINDOW,FULL_INV_COMPONENT).click();
+                    			//Set GUI status
+                    			status = "Finishd Fishing.";
+                    			break;
+                    		}
+                    	}
+            		}
             	} else {
             		status = "Fishing too low.";
             		ctx.controller.suspend();
