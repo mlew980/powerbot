@@ -20,7 +20,7 @@ import java.awt.Graphics2D;
 import java.text.DecimalFormat;
 
 @Script.Manifest(
-        name = "[RS3] KaraFisher v1.0",
+        name = "[RS3] KaraFisher v1.01",
         description = "Lobster/Shark fishing in Kara..",
         properties = "author=darkwalker31;topic=1310017;client = 6;"
 )
@@ -47,8 +47,6 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
     public static final int SWORD_FISH_NOTES = 372;
     public static final int TUNA = 359;
     public static final int TUNA_NOTES = 360;
-    public static final int FISHING_ANIMATION = 24929;
-    public static final int IDLE_ANIMATION = -1;
 
     //Fixed Path that goes from fishing spot to trader
     public static final Tile[] PATH = {
@@ -65,10 +63,14 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
     public static final int priceLobster = new GeItem(LOBSTER).price;
     public static final int priceTuna = new GeItem(SWORD_FISH).price;
     public static final int priceSwordFish = new GeItem(TUNA).price;
+    
+    TilePath pathToTrader, pathToFishingSpot, randomPathToTrader, randomPathToFishingSpot = null;
+
 
     @Override
     public void start () {
-    	
+    	pathToTrader = new TilePath(ctx, PATH);
+        pathToFishingSpot = new TilePath(ctx, PATH).reverse();
     }
     @Override
     public void poll() {
@@ -86,7 +88,15 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
             	//Set GUI status
             	status = "Walking to fishing spot.";
             	//Traverse to the fishing spot from trader.
-            	randomTilePath().reverse().traverse();
+            	TilePath temp_fishing = pathToFishingSpot.randomize(3,3);
+        		if (temp_fishing.valid()) {
+        			while(temp_fishing.traverse()) {
+        				Condition.sleep(Random.nextInt(800, 1000));
+        				if(pathToFishingSpot.end().distanceTo(ctx.players.local()) < 4) break;
+        			}
+            	} else {
+            		temp_fishing = pathToFishingSpot.randomize(3,3);
+            	}
                 break;
             //Cage Lobsters or Harpoon Sharks based on level
             case FISH:
@@ -132,7 +142,15 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
             	//Set GUI status
             	status = "Walking to trading spot.";
             	//Traverse to the fishing spot from trader.
-            	randomTilePath().traverse();
+            	TilePath temp_trade = pathToTrader.randomize(3,3);
+        		if (temp_trade.valid()) {
+        			while(temp_trade.traverse()) {
+        				Condition.sleep(Random.nextInt(800, 1000));
+        				if(pathToTrader.end().distanceTo(ctx.players.local()) < 4) break;
+        			}
+            	} else {
+            		temp_trade = pathToTrader.randomize(3,3);
+            	}
                 break;
             case TRADE_FISH:
             	//Set GUI status
@@ -175,23 +193,8 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
 	            return State.WALK_TO_TRADE_FISH; 
 	    } else if (ctx.backpack.select().id(LOBSTER).count() == 0 & !ctx.npcs.select().id(FISHING_SPOT).nearest().poll().inViewport() & (ctx.npcs.select().id(FISHING_SPOT).nearest().poll().tile().distanceTo(ctx.players.local()) >= 20)) {
 	            return State.WALK_TO_FISHING_SPOT;
-	    }
+	    } 
         return null;
-    }
-
-    
-
-
-    //Generates a random path using a fixed set of coordinates, meaning each path is random.
-    private TilePath randomTilePath() {
-    	Tile[] TEMP_PATH = new Tile[PATH.length];
-    	for(int i = 0; i < PATH.length; i++){
-    		int j = Random.nextInt(-3, 3);
-			int TEMP_X = PATH[i].x() + j;
-    		int TEMP_Y = PATH[i].y() + j;
-    		TEMP_PATH[i] = new Tile(TEMP_X,TEMP_Y,0);
-    	}
-    	return new TilePath(ctx, TEMP_PATH);
     }
     
     //List of different program states
@@ -276,7 +279,7 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
         g.setColor(Color.WHITE);
         
         //Draw text onto boxes
-        g.drawString(String.format("[RS3] KaraFisher v1.0"), 10, 20);
+        g.drawString(String.format("[RS3] KaraFisher v1.01"), 10, 20);
         g.drawString(String.format("Fishing Level: %d", currLevel), 10, 40);
         g.drawString(String.format("Levels Gained: %d", levelGain), 10, 60);
         g.drawString(String.format("EXP Gained: %d", expGain), 10, 80);
