@@ -64,7 +64,7 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
     public static final int priceTuna = new GeItem(SWORD_FISH).price;
     public static final int priceSwordFish = new GeItem(TUNA).price;
     
-    TilePath pathToTrader, pathToFishingSpot, randomPathToTrader, randomPathToFishingSpot = null;
+    TilePath pathToTrader, pathToFishingSpot;
 
 
     @Override
@@ -88,14 +88,8 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
             	//Set GUI status
             	status = "Walking to fishing spot.";
             	//Traverse to the fishing spot from trader.
-            	TilePath temp_fishing = pathToFishingSpot.randomize(3,3);
-        		if (temp_fishing.valid()) {
-        			while(temp_fishing.traverse()) {
-        				Condition.sleep(Random.nextInt(800, 1000));
-        				if(pathToFishingSpot.end().distanceTo(ctx.players.local()) < 4) break;
-        			}
-            	} else {
-            		temp_fishing = pathToFishingSpot.randomize(3,3);
+        		if (pathToFishingSpot.valid()) {
+        			pathToFishingSpot.traverse();
             	}
                 break;
             //Cage Lobsters or Harpoon Sharks based on level
@@ -105,7 +99,7 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
             	
             	//Get the closest fishing spot
             	final Npc fishing_Spot = ctx.npcs.select().id(FISHING_SPOT).nearest().poll();
-            	
+            	ctx.camera.turnTo(fishing_Spot);
             	//If fishing level is over 50 then Harpoon, otherwise Cage
             	if(currLevel >= 50){
             		//Harpoon the fishing spot
@@ -142,20 +136,15 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
             	//Set GUI status
             	status = "Walking to trading spot.";
             	//Traverse to the fishing spot from trader.
-            	TilePath temp_trade = pathToTrader.randomize(3,3);
-        		if (temp_trade.valid()) {
-        			while(temp_trade.traverse()) {
-        				Condition.sleep(Random.nextInt(800, 1000));
-        				if(pathToTrader.end().distanceTo(ctx.players.local()) < 4) break;
-        			}
-            	} else {
-            		temp_trade = pathToTrader.randomize(3,3);
-            	}
+        		if (pathToTrader.valid()) {
+        			pathToTrader.traverse();
+            	} 
                 break;
             case TRADE_FISH:
             	//Set GUI status
             	status = "Trading.";
             	final Npc trader = ctx.npcs.select().id(STILES_NPC).nearest().poll();
+            	ctx.camera.turnTo(trader);
                 trader.interact("Exchange");
                 Condition.sleep(Random.nextInt(800, 1000));
                 break;
@@ -181,17 +170,13 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
     	 *		2. Fishing spot isin't within view
     	 *		3. Fishing spot is over 20 tiles away (inclusive)
     	 */
-    	if (ctx.npcs.select().id(FISHING_SPOT).nearest().poll().inViewport() & ctx.backpack.select().count() != 28 & (ctx.npcs.select().id(FISHING_SPOT).nearest().poll().tile().distanceTo(ctx.players.local()) < 20)) {
+    	if (ctx.backpack.select().count() != 28 & (ctx.npcs.select().id(FISHING_SPOT).nearest().poll().tile().distanceTo(ctx.players.local()) < 15)) {
             return State.FISH;
-	    } else if(ctx.npcs.select().id(STILES_NPC).nearest().poll().inViewport() & (ctx.npcs.select().id(STILES_NPC).nearest().poll().tile().distanceTo(ctx.players.local()) < 10) & ctx.backpack.select().id(LOBSTER).count() != 0){
-	    	return State.TRADE_FISH;
-	    } else if(ctx.npcs.select().id(STILES_NPC).nearest().poll().inViewport() & (ctx.npcs.select().id(STILES_NPC).nearest().poll().tile().distanceTo(ctx.players.local()) < 10) & ctx.backpack.select().id(TUNA).count() != 0){
-	    	return State.TRADE_FISH;
-	    } else if(ctx.npcs.select().id(STILES_NPC).nearest().poll().inViewport() & (ctx.npcs.select().id(STILES_NPC).nearest().poll().tile().distanceTo(ctx.players.local()) < 10) & ctx.backpack.select().id(SWORD_FISH).count() != 0){
+	    } else if(ctx.npcs.select().id(STILES_NPC).nearest().poll().inViewport() & (ctx.npcs.select().id(STILES_NPC).nearest().poll().tile().distanceTo(ctx.players.local()) < 10) & Math.max(ctx.backpack.select().id(SWORD_FISH).count(),Math.max(ctx.backpack.select().id(LOBSTER).count(), ctx.backpack.select().id(TUNA).count())) != 0){
 	    	return State.TRADE_FISH;
 	    } else if (ctx.backpack.select().count() == 28) {
 	            return State.WALK_TO_TRADE_FISH; 
-	    } else if (ctx.backpack.select().id(LOBSTER).count() == 0 & !ctx.npcs.select().id(FISHING_SPOT).nearest().poll().inViewport() & (ctx.npcs.select().id(FISHING_SPOT).nearest().poll().tile().distanceTo(ctx.players.local()) >= 20)) {
+	    } else if (ctx.backpack.select().id(LOBSTER).count() == 0 & ctx.backpack.select().id(TUNA).count() == 0 & ctx.backpack.select().id(SWORD_FISH).count() == 0 & (ctx.npcs.select().id(FISHING_SPOT).nearest().poll().tile().distanceTo(ctx.players.local()) >= 15)) {
 	            return State.WALK_TO_FISHING_SPOT;
 	    } 
         return null;
