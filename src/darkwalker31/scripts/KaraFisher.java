@@ -20,9 +20,9 @@ import java.awt.Graphics2D;
 import java.text.DecimalFormat;
 
 @Script.Manifest(
-        name = "[RS3] KaraFisher v1.01",
+        name = "[RS3] KaraFisher",
         description = "Lobster/Shark fishing in Kara..",
-        properties = "author=darkwalker31;topic=1310017;client = 6;"
+        properties = "author=darkwalker31;topic=1310017;client=6;version=1.02;"
 )
 
 public class KaraFisher extends PollingScript<ClientContext> implements PaintListener {
@@ -38,7 +38,7 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
 	public int profit = 0;
 	public String status = "";
     
-	//Declare constants
+	//ID constants
     public static final int STILES_NPC = 11267;
     public static final int FISHING_SPOT = 324;
     public static final int LOBSTER = 377;
@@ -47,6 +47,10 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
     public static final int SWORD_FISH_NOTES = 372;
     public static final int TUNA = 359;
     public static final int TUNA_NOTES = 360;
+    
+    //Widget Constants
+    public static final int FULL_INV_WINDOW = 1186;
+    public static final int FULL_INV_COMPONENT = 4;
 
     //Fixed Path that goes from fishing spot to trader
     public static final Tile[] PATH = {
@@ -96,20 +100,24 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
             case FISH:
             	//Set GUI status
             	status = "Fishing.";
-            	
+                
             	//Get the closest fishing spot
             	final Npc fishing_Spot = ctx.npcs.select().id(FISHING_SPOT).nearest().poll();
             	ctx.camera.turnTo(fishing_Spot);
             	//If fishing level is over 50 then Harpoon, otherwise Cage
             	if(currLevel >= 50){
             		//Harpoon the fishing spot
-            		fishing_Spot.interact("Harpoon");
+            		if(fishing_Spot.id() == FISHING_SPOT){
+            			fishing_Spot.interact("Harpoon");
+            		}
             		
             		//Check if still fishing and if bag is full
                 	while (ctx.players.local().interacting().valid() & ctx.backpack.select().count() != 28) {
                 		Condition.sleep(Random.nextInt(800, 1000));
-                		if(ctx.widgets.widget(1186).valid() & ctx.backpack.select().count() != 28){
-                			ctx.widgets.component(1186,4).click();
+                		amountTuna = ctx.backpack.select().id(TUNA_NOTES).count(true) + ctx.backpack.select().id(TUNA).count();
+                        amountSwordFish = ctx.backpack.select().id(SWORD_FISH_NOTES).count(true) + ctx.backpack.select().id(SWORD_FISH).count();
+                		if(ctx.widgets.widget(FULL_INV_WINDOW).valid() & ctx.backpack.select().count() != 28){
+                			ctx.widgets.component(FULL_INV_WINDOW,FULL_INV_COMPONENT).click();
                 			//Set GUI status
                 			status = "Finishd Fishing.";
                 			break;
@@ -119,8 +127,9 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
             		fishing_Spot.interact("Cage");
                 	while (ctx.players.local().interacting().valid()) {
                 		Condition.sleep(Random.nextInt(800, 1000));
-                		if(ctx.widgets.widget(1186).valid()){
-                			ctx.widgets.component(1186,4).click();
+                		amountLobster = ctx.backpack.select().id(LOBSTER_NOTES).count(true) + ctx.backpack.select().id(LOBSTER).count();
+                		if(ctx.widgets.widget(FULL_INV_WINDOW).valid()){
+                			ctx.widgets.component(FULL_INV_WINDOW,FULL_INV_COMPONENT).click();
                 			//Set GUI status
                 			status = "Finishd Fishing.";
                 			break;
@@ -128,7 +137,7 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
                 	}
             	} else {
             		status = "Fishing too low.";
-            		ctx.controller.stop();
+            		ctx.controller.suspend();
             	}
             	
                 break;
@@ -146,9 +155,13 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
             	final Npc trader = ctx.npcs.select().id(STILES_NPC).nearest().poll();
             	ctx.camera.turnTo(trader);
                 trader.interact("Exchange");
-                Condition.sleep(Random.nextInt(800, 1000));
                 break;
-               
+            case IDLE:
+            	status = "Idle.";
+            	break;
+            default:
+            	status = "Idle.";
+            	break;   
         }
     }
 
@@ -172,26 +185,27 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
     	 */
     	if (ctx.backpack.select().count() != 28 & (ctx.npcs.select().id(FISHING_SPOT).nearest().poll().tile().distanceTo(ctx.players.local()) < 15)) {
             return State.FISH;
-	    } else if(ctx.npcs.select().id(STILES_NPC).nearest().poll().inViewport() & (ctx.npcs.select().id(STILES_NPC).nearest().poll().tile().distanceTo(ctx.players.local()) < 10) & Math.max(ctx.backpack.select().id(SWORD_FISH).count(),Math.max(ctx.backpack.select().id(LOBSTER).count(), ctx.backpack.select().id(TUNA).count())) != 0){
+	    } else if(ctx.npcs.select().id(STILES_NPC).nearest().poll().inViewport() & (ctx.npcs.select().id(STILES_NPC).nearest().poll().tile().distanceTo(ctx.players.local()) < 10) & !ctx.backpack.select().id(TUNA, LOBSTER, SWORD_FISH).isEmpty()){
 	    	return State.TRADE_FISH;
 	    } else if (ctx.backpack.select().count() == 28) {
-	            return State.WALK_TO_TRADE_FISH; 
+	        return State.WALK_TO_TRADE_FISH; 
 	    } else if (ctx.backpack.select().id(LOBSTER).count() == 0 & ctx.backpack.select().id(TUNA).count() == 0 & ctx.backpack.select().id(SWORD_FISH).count() == 0 & (ctx.npcs.select().id(FISHING_SPOT).nearest().poll().tile().distanceTo(ctx.players.local()) >= 15)) {
-	            return State.WALK_TO_FISHING_SPOT;
-	    } 
-        return null;
+	        return State.WALK_TO_FISHING_SPOT;
+	    } else {
+	    	return State.IDLE;
+	    }
     }
     
     //List of different program states
     private enum State {
-    	WALK_TO_FISHING_SPOT, FISH, WALK_TO_TRADE_FISH, TRADE_FISH
+    	WALK_TO_FISHING_SPOT, FISH, WALK_TO_TRADE_FISH, TRADE_FISH, IDLE
     }
     
     //Set the font to Tahoma, for purposes.
     public static final Font TAHOMA = new Font("Tahoma", Font.PLAIN, 12);
 
     //Convert long type millisecond timer into a String showing hh:mm:ss, helper class.
-    public String Time(long i) {
+    public static String Time(long i) {
     	DecimalFormat nf = new DecimalFormat("00");
     	long millis = i;
     	long hours = millis / (1000 * 60 * 60);
@@ -233,9 +247,7 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
          * 	amount<X> - Gives the amount of <X> currently present both in hard form and note form
          * 	profit - Gives the current price on GE for lobster, tuna and swordfish
          */
-		amountLobster = ctx.backpack.select().id(LOBSTER_NOTES).count(true) + ctx.backpack.select().id(LOBSTER).count();
-		amountTuna = ctx.backpack.select().id(TUNA_NOTES).count(true) + ctx.backpack.select().id(TUNA).count();
-		amountSwordFish = ctx.backpack.select().id(SWORD_FISH_NOTES).count(true) + ctx.backpack.select().id(SWORD_FISH).count();
+        
         profit = (priceLobster * amountLobster) + (priceTuna * amountTuna) + (priceSwordFish * amountSwordFish);
       
         //Current EXP in Fishing
@@ -264,7 +276,7 @@ public class KaraFisher extends PollingScript<ClientContext> implements PaintLis
         g.setColor(Color.WHITE);
         
         //Draw text onto boxes
-        g.drawString(String.format("[RS3] KaraFisher v1.01"), 10, 20);
+        g.drawString(String.format("[RS3] KaraFisher"), 10, 20);
         g.drawString(String.format("Fishing Level: %d", currLevel), 10, 40);
         g.drawString(String.format("Levels Gained: %d", levelGain), 10, 60);
         g.drawString(String.format("EXP Gained: %d", expGain), 10, 80);
