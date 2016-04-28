@@ -25,7 +25,7 @@ import java.util.concurrent.Callable;
 @Script.Manifest(
         name = "[RS3] KebabBuyer",
         description = "Buys kebabs from Karim in Al Kharid.",
-        properties = "author=darkwalker31;topic=;client = 6;version=1.0"
+        properties = "author=darkwalker31;topic=1310209;client = 6;version=1.0"
 )
 
 public class KebabBuyer extends PollingScript<ClientContext> implements MessageListener, PaintListener {
