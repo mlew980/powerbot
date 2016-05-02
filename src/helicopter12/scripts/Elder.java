@@ -166,7 +166,7 @@ public class Elder extends PollingScript<ClientContext> implements PaintListener
                 break;
             case CHOP_TREE:
                 // Handle the chopping now
-                final GameObject elder = ctx.objects.select().id(elderID).nearest().poll();
+                final GameObject elder = ctx.objects.select(10).id(elderID).poll();
                 if (elder.valid()) {
                     status = "Chopping";
                     if (!elder.inViewport()) {
